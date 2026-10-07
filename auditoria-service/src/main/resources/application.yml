@@ -1,0 +1,33 @@
+server:
+  port: 8084
+spring:
+  application:
+    name: auditoria-service
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/auditoria_db}
+    username: ${DB_USER:freela}
+    password: ${DB_PASSWORD:freela}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URL:http://localhost:8761/eureka/}
+logging:
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level service=${spring.application.name} thread=%thread logger=%logger{36} - %msg%n"
+  level:
+    root: INFO
+    br.com.freela: INFO

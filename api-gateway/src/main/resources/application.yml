@@ -1,0 +1,44 @@
+server:
+  port: 8080
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      server:
+        webflux:
+          routes:
+            - id: contrato-service
+              uri: lb://contrato-service
+              predicates:
+                - Path=/api/contratos/**
+            - id: notificacao-service
+              uri: lb://notificacao-service
+              predicates:
+                - Path=/api/notificacoes/**
+            - id: reputacao-service
+              uri: lb://reputacao-service
+              predicates:
+                - Path=/api/reputacoes/**
+            - id: auditoria-service
+              uri: lb://auditoria-service
+              predicates:
+                - Path=/api/auditoria/**
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,gateway
+  endpoint:
+    health:
+      show-details: always
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URL:http://localhost:8761/eureka/}
+logging:
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level service=${spring.application.name} thread=%thread logger=%logger{36} - %msg%n"
+  level:
+    root: INFO
+    br.com.freela: INFO
