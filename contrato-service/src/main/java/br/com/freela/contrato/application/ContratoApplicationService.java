@@ -1,5 +1,6 @@
 package br.com.freela.contrato.application;
 
+import br.com.freela.contrato.application.port.EventoOutbox;
 import br.com.freela.contrato.domain.model.Contrato;
 import br.com.freela.contrato.domain.repository.ContratoRepository;
 import br.com.freela.contrato.domain.shared.DomainEvent;
@@ -15,8 +16,12 @@ import java.util.UUID;
 public class ContratoApplicationService {
     private static final Logger log = LoggerFactory.getLogger(ContratoApplicationService.class);
     private final ContratoRepository repository;
+    private final EventoOutbox outbox;
 
-    public ContratoApplicationService(ContratoRepository repository) { this.repository = repository; }
+    public ContratoApplicationService(ContratoRepository repository, EventoOutbox outbox) {
+        this.repository = repository;
+        this.outbox = outbox;
+    }
 
     @Transactional
     public Contrato criar(CriarContratoCommand cmd) {
@@ -78,11 +83,11 @@ public class ContratoApplicationService {
         return repository.buscarPorId(id).orElseThrow(() -> new ContratoNaoEncontradoException(id));
     }
 
-    // Os eventos existem no Aggregate, mas ainda não são publicados no Kafka.
     private void registrarEventosPendentes(Contrato contrato) {
         for (DomainEvent event : contrato.pullDomainEvents()) {
-            log.info("contrato.evento.pendente contratoId={} eventId={} eventType={} occurredAt={}",
+            log.info("contrato.evento.registrado contratoId={} eventId={} eventType={} occurredAt={}",
                     contrato.id(), event.eventId(), event.eventType(), event.occurredAt());
+            outbox.registrar(event);
         }
     }
 
