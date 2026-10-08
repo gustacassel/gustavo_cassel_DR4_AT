@@ -1,0 +1,81 @@
+# Aplicações em containers, na mesma rede da infra.
+# Antes: mvn -q -DskipTests package (na raiz do projeto)
+# Depois, nesta pasta: docker compose -f docker-compose.yml -f docker-compose.apps.yml up -d --build
+
+x-app: &app
+  restart: unless-stopped
+  networks: [freela-net]
+
+x-app-env: &app-env
+  EUREKA_URL: http://eureka-server:8761/eureka/
+  EUREKA_INSTANCE_PREFER_IP_ADDRESS: "true"
+  KAFKA_BOOTSTRAP_SERVERS: kafka:19092
+  DB_USER: freela
+  DB_PASSWORD: freela
+
+services:
+  eureka-server:
+    <<: *app
+    build: { context: .., args: { MODULE: eureka-server } }
+    container_name: freela-eureka
+    ports: ["8761:8761"]
+
+  api-gateway:
+    <<: *app
+    build: { context: .., args: { MODULE: api-gateway } }
+    container_name: freela-gateway
+    environment: *app-env
+    ports: ["8080:8080"]
+    depends_on: [eureka-server]
+
+  contrato-service:
+    <<: *app
+    build: { context: .., args: { MODULE: contrato-service } }
+    container_name: freela-contrato
+    environment:
+      <<: *app-env
+      DB_URL: jdbc:postgresql://postgres:5432/contrato_db
+    ports: ["8081:8081"]
+    depends_on:
+      postgres: { condition: service_healthy }
+      kafka: { condition: service_healthy }
+      eureka-server: { condition: service_started }
+
+  notificacao-service:
+    <<: *app
+    build: { context: .., args: { MODULE: notificacao-service } }
+    container_name: freela-notificacao
+    environment:
+      <<: *app-env
+      DB_URL: jdbc:postgresql://postgres:5432/notificacao_db
+    ports: ["8082:8082"]
+    depends_on:
+      postgres: { condition: service_healthy }
+      kafka: { condition: service_healthy }
+      eureka-server: { condition: service_started }
+
+  reputacao-service:
+    <<: *app
+    build: { context: .., args: { MODULE: reputacao-service } }
+    container_name: freela-reputacao
+    environment:
+      <<: *app-env
+      DB_URL: jdbc:postgresql://postgres:5432/reputacao_db
+    ports: ["8083:8083"]
+    depends_on:
+      postgres: { condition: service_healthy }
+      kafka: { condition: service_healthy }
+      eureka-server: { condition: service_started }
+
+  auditoria-service:
+    <<: *app
+    build: { context: .., args: { MODULE: auditoria-service } }
+    container_name: freela-auditoria
+    environment:
+      <<: *app-env
+      DB_URL: jdbc:postgresql://postgres:5432/auditoria_db
+    ports: ["8084:8084"]
+    depends_on:
+      postgres: { condition: service_healthy }
+      kafka: { condition: service_healthy }
+      eureka-server: { condition: service_started }
