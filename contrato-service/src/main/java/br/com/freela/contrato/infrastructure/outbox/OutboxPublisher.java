@@ -2,6 +2,8 @@ package br.com.freela.contrato.infrastructure.outbox;
 
 import br.com.freela.contrato.infrastructure.LogContexto;
 import br.com.freela.contrato.infrastructure.messaging.EventoMensagem;
+import io.micrometer.tracing.Span;
+import io.micrometer.tracing.Tracer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.header.internals.RecordHeader;
 import org.slf4j.Logger;
@@ -22,13 +24,16 @@ public class OutboxPublisher {
     private final SpringDataOutboxRepository repository;
     private final KafkaTemplate<String, String> kafkaTemplate;
     private final ObjectMapper objectMapper;
+    private final Tracer tracer;
     private final String topico;
 
     public OutboxPublisher(SpringDataOutboxRepository repository, KafkaTemplate<String, String> kafkaTemplate,
-                           ObjectMapper objectMapper, @Value("${app.kafka.topico-contratos}") String topico) {
+                           ObjectMapper objectMapper, Tracer tracer,
+                           @Value("${app.kafka.topico-contratos}") String topico) {
         this.repository = repository;
         this.kafkaTemplate = kafkaTemplate;
         this.objectMapper = objectMapper;
+        this.tracer = tracer;
         this.topico = topico;
     }
 
@@ -38,7 +43,8 @@ public class OutboxPublisher {
         var pendentes = repository.findTop100ByPublicadoEmIsNullOrderByCriadoEmAsc();
         for (var evento : pendentes) {
             LogContexto.definir(evento.getCorrelationId(), evento.getContratoId(), evento.getEventId());
-            try {
+            Span span = iniciarSpan(evento);
+            try (Tracer.SpanInScope ignored = tracer.withSpan(span)) {
                 kafkaTemplate.send(montarRecord(evento)).get(10, TimeUnit.SECONDS);
                 evento.marcarPublicado();
                 log.info("contrato.outbox.publicado topico={} contratoId={} eventId={} eventType={} correlationId={}",
@@ -50,9 +56,24 @@ public class OutboxPublisher {
                 // Interrompe o ciclo: pular este evento quebraria a ordem dos eventos do mesmo contrato.
                 return;
             } finally {
+                span.end();
                 LogContexto.limpar();
             }
         }
+    }
+
+    // O publisher roda num scheduler, fora da requisição; o span é reaberto como filho do trace
+    // que criou o evento para que gateway -> contrato -> Kafka -> consumidores formem um único trace.
+    private Span iniciarSpan(OutboxEventoJpaEntity evento) {
+        Span.Builder builder = tracer.spanBuilder().name("outbox publicar")
+                .tag("contrato.id", String.valueOf(evento.getContratoId()))
+                .tag("evento.id", String.valueOf(evento.getEventId()))
+                .tag("evento.tipo", evento.getEventType());
+        if (evento.getTraceId() != null && evento.getSpanId() != null) {
+            builder.setParent(tracer.traceContextBuilder()
+                    .traceId(evento.getTraceId()).spanId(evento.getSpanId()).sampled(true).build());
+        }
+        return builder.start();
     }
 
     private ProducerRecord<String, String> montarRecord(OutboxEventoJpaEntity evento) {

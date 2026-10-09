@@ -21,11 +21,14 @@ public class OutboxEventoJpaEntity {
     private Instant publicadoEm;
     private int tentativas;
     @Column(length = 500) private String ultimoErro;
+    // Contexto de tracing da requisição que gerou o evento, para o publisher continuar o mesmo trace.
+    @Column(length = 32) private String traceId;
+    @Column(length = 16) private String spanId;
 
     protected OutboxEventoJpaEntity() {}
 
     public OutboxEventoJpaEntity(UUID eventId, String eventType, UUID contratoId, String correlationId,
-                                 String payload, Instant occurredAt) {
+                                 String payload, Instant occurredAt, String traceId, String spanId) {
         this.id = UUID.randomUUID();
         this.eventId = eventId;
         this.eventType = eventType;
@@ -34,6 +37,8 @@ public class OutboxEventoJpaEntity {
         this.payload = payload;
         this.occurredAt = occurredAt;
         this.criadoEm = Instant.now();
+        this.traceId = traceId;
+        this.spanId = spanId;
     }
 
     void marcarPublicado() {
@@ -56,4 +61,6 @@ public class OutboxEventoJpaEntity {
     public Instant getCriadoEm() { return criadoEm; }
     public Instant getPublicadoEm() { return publicadoEm; }
     public int getTentativas() { return tentativas; }
+    public String getTraceId() { return traceId; }
+    public String getSpanId() { return spanId; }
 }

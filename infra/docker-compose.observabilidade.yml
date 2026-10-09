@@ -1,0 +1,17 @@
+# Observabilidade: rastreamento distribuído (Zipkin).
+# Nesta pasta: docker compose -f docker-compose.yml -f docker-compose.apps.yml -f docker-compose.observabilidade.yml up -d --build
+
+services:
+  zipkin:
+    image: openzipkin/zipkin:3
+    container_name: freela-zipkin
+    ports:
+      - "9411:9411"
+    environment:
+      STORAGE_TYPE: mem
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:9411/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    networks: [freela-net]
