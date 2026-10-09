@@ -2,6 +2,7 @@ package br.com.freela.gateway;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
@@ -23,14 +24,24 @@ public class RequestLoggingFilter implements GlobalFilter, Ordered {
         long inicio = System.currentTimeMillis();
 
         var request = exchange.getRequest().mutate().header("X-Correlation-Id", correlationId).build();
-        log.info("gateway.request.inicio correlationId={} method={} path={}", correlationId,
-                request.getMethod(), request.getURI().getPath());
+        comCorrelationId(correlationId, () -> log.info("gateway.request.inicio correlationId={} method={} path={}",
+                finalCorrelationId, request.getMethod(), request.getURI().getPath()));
 
         return chain.filter(exchange.mutate().request(request).build())
-                .doFinally(signal -> log.info(
+                .doFinally(signal -> comCorrelationId(finalCorrelationId, () -> log.info(
                         "gateway.request.fim correlationId={} method={} path={} status={} durationMs={} signal={}",
                         finalCorrelationId, request.getMethod(), request.getURI().getPath(),
-                        exchange.getResponse().getStatusCode(), System.currentTimeMillis() - inicio, signal));
+                        exchange.getResponse().getStatusCode(), System.currentTimeMillis() - inicio, signal)));
+    }
+
+    // WebFlux troca de thread ao longo da requisição; o MDC é definido só em volta de cada log.
+    private static void comCorrelationId(String correlationId, Runnable log) {
+        MDC.put("correlationId", correlationId);
+        try {
+            log.run();
+        } finally {
+            MDC.remove("correlationId");
+        }
     }
 
     @Override public int getOrder() { return -100; }

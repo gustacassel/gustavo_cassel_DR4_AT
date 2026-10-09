@@ -1,5 +1,6 @@
 package br.com.freela.contrato.infrastructure.outbox;
 
+import br.com.freela.contrato.infrastructure.LogContexto;
 import br.com.freela.contrato.infrastructure.messaging.EventoMensagem;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.header.internals.RecordHeader;
@@ -36,6 +37,7 @@ public class OutboxPublisher {
     public void publicarPendentes() {
         var pendentes = repository.findTop100ByPublicadoEmIsNullOrderByCriadoEmAsc();
         for (var evento : pendentes) {
+            LogContexto.definir(evento.getCorrelationId(), evento.getContratoId(), evento.getEventId());
             try {
                 kafkaTemplate.send(montarRecord(evento)).get(10, TimeUnit.SECONDS);
                 evento.marcarPublicado();
@@ -47,6 +49,8 @@ public class OutboxPublisher {
                         evento.getContratoId(), evento.getEventId(), evento.getEventType(), evento.getTentativas(), ex);
                 // Interrompe o ciclo: pular este evento quebraria a ordem dos eventos do mesmo contrato.
                 return;
+            } finally {
+                LogContexto.limpar();
             }
         }
     }

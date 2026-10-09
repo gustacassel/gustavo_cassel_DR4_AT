@@ -22,13 +22,17 @@ public class ContratoEventosConsumer {
                    concurrency = "${app.kafka.concurrencia}")
     public void consumir(ConsumerRecord<String, String> record) {
         var mensagem = objectMapper.readValue(record.value(), EventoContratoMensagem.class);
-        log.info("reputacao.evento.recebido topico={} particao={} offset={} key={} eventId={} eventType={} contratoId={} correlationId={}",
-                record.topic(), record.partition(), record.offset(), record.key(), mensagem.eventId(),
-                mensagem.eventType(), mensagem.contratoId(), mensagem.correlationId());
+        LogContexto.definir(mensagem);
+        try {
+            log.info("reputacao.evento.recebido topico={} particao={} offset={} key={} eventType={}",
+                    record.topic(), record.partition(), record.offset(), record.key(), mensagem.eventType());
 
-        boolean processado = service.processar(mensagem);
+            boolean processado = service.processar(mensagem);
 
-        log.info("reputacao.evento.processado eventId={} contratoId={} resultado={}",
-                mensagem.eventId(), mensagem.contratoId(), processado ? "PROCESSADO" : "DUPLICADO_IGNORADO");
+            log.info("reputacao.evento.processado eventType={} resultado={}",
+                    mensagem.eventType(), processado ? "PROCESSADO" : "DUPLICADO_IGNORADO");
+        } finally {
+            LogContexto.limpar();
+        }
     }
 }

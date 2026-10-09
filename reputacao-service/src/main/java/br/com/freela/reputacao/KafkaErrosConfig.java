@@ -34,12 +34,16 @@ class KafkaErrosConfig {
         handler.addNotRetryableExceptions(JacksonException.class, IllegalArgumentException.class);
         handler.setRetryListeners(new RetryListener() {
             @Override public void failedDelivery(ConsumerRecord<?, ?> record, Exception ex, int tentativa) {
-                log.warn("reputacao.evento.retry topico={} particao={} offset={} key={} tentativa={} erro={}",
-                        record.topic(), record.partition(), record.offset(), record.key(), tentativa, ex.getMessage());
+                log.warn("reputacao.evento.retry topico={} particao={} offset={} key={} contratoId={} eventId={} correlationId={} tentativa={} erro={}",
+                        record.topic(), record.partition(), record.offset(), record.key(),
+                        LogContexto.header(record, "contratoId"), LogContexto.header(record, "eventId"),
+                        LogContexto.header(record, "correlationId"), tentativa, ex.getMessage());
             }
             @Override public void recovered(ConsumerRecord<?, ?> record, Exception ex) {
-                log.error("reputacao.evento.dlt topico={} particao={} offset={} key={} erro={}",
-                        record.topic(), record.partition(), record.offset(), record.key(), ex.getMessage());
+                log.error("reputacao.evento.dlt topico={} particao={} offset={} key={} contratoId={} eventId={} correlationId={} erro={}",
+                        record.topic(), record.partition(), record.offset(), record.key(),
+                        LogContexto.header(record, "contratoId"), LogContexto.header(record, "eventId"),
+                        LogContexto.header(record, "correlationId"), ex.getMessage());
             }
         });
         return handler;

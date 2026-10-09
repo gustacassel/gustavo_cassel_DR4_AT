@@ -22,18 +22,22 @@ public class ContratoEventosConsumer {
                    concurrency = "${app.kafka.concurrencia}")
     public void consumir(ConsumerRecord<String, String> record) {
         var mensagem = objectMapper.readValue(record.value(), EventoContratoMensagem.class);
-        log.info("notificacao.evento.recebido topico={} particao={} offset={} key={} eventId={} eventType={} contratoId={} correlationId={}",
-                record.topic(), record.partition(), record.offset(), record.key(), mensagem.eventId(),
-                mensagem.eventType(), mensagem.contratoId(), mensagem.correlationId());
+        LogContexto.definir(mensagem);
+        try {
+            log.info("notificacao.evento.recebido topico={} particao={} offset={} key={} eventType={}",
+                    record.topic(), record.partition(), record.offset(), record.key(), mensagem.eventType());
 
-        // Gatilho para demonstrar retry e DLT: um contrato cujo título começa com "FALHA:" não consegue ser processado.
-        if (mensagem.titulo().startsWith("FALHA:")) {
-            throw new IllegalStateException("Falha simulada no processamento do evento " + mensagem.eventId());
+            // Gatilho para demonstrar retry e DLT: um contrato cujo título começa com "FALHA:" não consegue ser processado.
+            if (mensagem.titulo().startsWith("FALHA:")) {
+                throw new IllegalStateException("Falha simulada no processamento do evento " + mensagem.eventId());
+            }
+
+            boolean processado = service.processar(mensagem);
+
+            log.info("notificacao.evento.processado eventType={} resultado={}",
+                    mensagem.eventType(), processado ? "PROCESSADO" : "DUPLICADO_IGNORADO");
+        } finally {
+            LogContexto.limpar();
         }
-
-        boolean processado = service.processar(mensagem);
-
-        log.info("notificacao.evento.processado eventId={} contratoId={} resultado={}",
-                mensagem.eventId(), mensagem.contratoId(), processado ? "PROCESSADO" : "DUPLICADO_IGNORADO");
     }
 }
