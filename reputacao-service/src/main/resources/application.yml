@@ -18,11 +18,18 @@ spring:
       auto-offset-reset: earliest
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
 app:
   kafka:
     topico-contratos: contratos.eventos
+    topico-contratos-dlt: contratos.eventos.DLT
     particoes: 3
     concurrencia: 3
+    retry:
+      tentativas: 3
+      intervalo-ms: 1000
 management:
   endpoints:
     web:

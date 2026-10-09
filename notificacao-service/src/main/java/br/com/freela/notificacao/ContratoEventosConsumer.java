@@ -26,6 +26,11 @@ public class ContratoEventosConsumer {
                 record.topic(), record.partition(), record.offset(), record.key(), mensagem.eventId(),
                 mensagem.eventType(), mensagem.contratoId(), mensagem.correlationId());
 
+        // Gatilho para demonstrar retry e DLT: um contrato cujo título começa com "FALHA:" não consegue ser processado.
+        if (mensagem.titulo().startsWith("FALHA:")) {
+            throw new IllegalStateException("Falha simulada no processamento do evento " + mensagem.eventId());
+        }
+
         boolean processado = service.processar(mensagem);
 
         log.info("notificacao.evento.processado eventId={} contratoId={} resultado={}",
