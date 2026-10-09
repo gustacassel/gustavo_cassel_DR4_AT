@@ -21,6 +21,7 @@ spring:
 app:
   kafka:
     topico-contratos: contratos.eventos
+    particoes: 3
     concurrencia: 3
 management:
   endpoints:
