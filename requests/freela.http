@@ -1,0 +1,61 @@
+### Variáveis (ajuste o id do contrato após a criação)
+@gateway = http://localhost:8080
+@correlationId = demo-001
+@contratoId = 00000000-0000-0000-0000-000000000000
+
+### Criar contrato (ContratoCriado)
+POST {{gateway}}/api/contratos
+Content-Type: application/json
+X-Correlation-Id: {{correlationId}}
+
+{
+  "clienteId": "11111111-1111-1111-1111-111111111111",
+  "freelancerId": "22222222-2222-2222-2222-222222222222",
+  "titulo": "Construção de API de pagamentos",
+  "valor": 3500.00
+}
+
+### Registrar entrega (EntregaRegistrada)
+POST {{gateway}}/api/contratos/{{contratoId}}/entrega
+X-Correlation-Id: {{correlationId}}
+
+### Concluir (ContratoConcluido)
+POST {{gateway}}/api/contratos/{{contratoId}}/conclusao
+X-Correlation-Id: {{correlationId}}
+
+### Cancelar (ContratoCancelado) — em um contrato ativo
+POST {{gateway}}/api/contratos/{{contratoId}}/cancelamento
+X-Correlation-Id: {{correlationId}}
+
+### Consultar contrato
+GET {{gateway}}/api/contratos/{{contratoId}}
+
+### Listar contratos
+GET {{gateway}}/api/contratos
+
+### Notificações geradas pelos eventos
+GET {{gateway}}/api/notificacoes
+
+### Reputação dos freelancers
+GET {{gateway}}/api/reputacoes
+
+### Auditoria dos eventos
+GET {{gateway}}/api/auditoria
+
+### Transição inválida -> 409 (concluir sem entrega registrada)
+POST {{gateway}}/api/contratos/{{contratoId}}/conclusao
+
+### Contrato inexistente -> 404
+GET {{gateway}}/api/contratos/00000000-0000-0000-0000-000000000000
+
+### Falha simulada na notificação (3 tentativas e DLT; demais consumidores processam normalmente)
+POST {{gateway}}/api/contratos
+Content-Type: application/json
+X-Correlation-Id: {{correlationId}}-falha
+
+{
+  "clienteId": "11111111-1111-1111-1111-111111111111",
+  "freelancerId": "22222222-2222-2222-2222-222222222222",
+  "titulo": "FALHA: demonstração de retry e DLT",
+  "valor": 10
+}
