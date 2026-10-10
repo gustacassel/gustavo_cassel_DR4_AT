@@ -26,6 +26,10 @@ spring:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.apache.kafka.common.serialization.StringSerializer
 app:
+  logs:
+    gelf:
+      host: ${GELF_HOST:localhost}
+      port: ${GELF_PORT:12201}
   kafka:
     topico-contratos: contratos.eventos
     topico-contratos-dlt: contratos.eventos.DLT
@@ -52,9 +56,8 @@ eureka:
   client:
     service-url:
       defaultZone: ${EUREKA_URL:http://localhost:8761/eureka/}
+# Appenders e pattern ficam em logback-spring.xml (console + GELF para o Graylog).
 logging:
-  pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level service=${spring.application.name} traceId=%X{traceId:-} spanId=%X{spanId:-} correlationId=%X{correlationId:-} contratoId=%X{contratoId:-} eventId=%X{eventId:-} thread=%thread logger=%logger{36} - %msg%n"
   level:
     root: INFO
     br.com.freela: INFO

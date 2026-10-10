@@ -1,5 +1,9 @@
-# Observabilidade: rastreamento distribuído (Zipkin).
+# Observabilidade: rastreamento distribuído (Zipkin) e centralização de logs (Graylog).
 # Nesta pasta: docker compose -f docker-compose.yml -f docker-compose.apps.yml -f docker-compose.observabilidade.yml up -d --build
+#
+#   Zipkin   http://localhost:9411
+#   Graylog  http://localhost:9000  (admin / admin)
+#   Os serviços enviam logs em GELF UDP para graylog:12201; o input é criado automaticamente (graylog-init).
 
 services:
   zipkin:
@@ -15,3 +19,67 @@ services:
       timeout: 5s
       retries: 12
     networks: [freela-net]
+
+  mongodb:
+    image: mongo:7
+    container_name: freela-mongodb
+    volumes:
+      - mongodb_data:/data/db
+    networks: [freela-net]
+
+  opensearch:
+    image: opensearchproject/opensearch:2.15.0
+    container_name: freela-opensearch
+    environment:
+      discovery.type: single-node
+      DISABLE_SECURITY_PLUGIN: "true"
+      DISABLE_INSTALL_DEMO_CONFIG: "true"
+      action.auto_create_index: "false"
+      bootstrap.memory_lock: "false"
+      OPENSEARCH_JAVA_OPTS: "-Xms1g -Xmx1g"
+    volumes:
+      - opensearch_data:/usr/share/opensearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9200/_cluster/health | grep -qE '\"status\":\"(green|yellow)\"'"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+    networks: [freela-net]
+
+  graylog:
+    image: graylog/graylog:6.1
+    container_name: freela-graylog
+    depends_on:
+      mongodb:
+        condition: service_started
+      opensearch:
+        condition: service_healthy
+    environment:
+      GRAYLOG_PASSWORD_SECRET: freelamarketplacesegredolocal
+      # senha "admin" em SHA-256
+      GRAYLOG_ROOT_PASSWORD_SHA2: 8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918
+      GRAYLOG_HTTP_EXTERNAL_URI: http://localhost:9000/
+      GRAYLOG_ELASTICSEARCH_HOSTS: http://opensearch:9200
+      GRAYLOG_MONGODB_URI: mongodb://mongodb:27017/graylog
+      GRAYLOG_TIMEZONE: America/Sao_Paulo
+    ports:
+      - "9000:9000"
+      - "12201:12201/udp"
+    volumes:
+      - graylog_data:/usr/share/graylog/data
+    networks: [freela-net]
+
+  graylog-init:
+    image: curlimages/curl:8.10.1
+    container_name: freela-graylog-init
+    depends_on: [graylog]
+    restart: "no"
+    volumes:
+      - ./graylog/criar-input-gelf.sh:/criar-input-gelf.sh:ro
+    entrypoint: ["sh", "/criar-input-gelf.sh"]
+    networks: [freela-net]
+
+volumes:
+  mongodb_data:
+  opensearch_data:
+  graylog_data:

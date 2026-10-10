@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <springProperty scope="context" name="appName" source="spring.application.name" defaultValue="app"/>
+    <springProperty scope="context" name="gelfHost" source="app.logs.gelf.host" defaultValue="localhost"/>
+    <springProperty scope="context" name="gelfPort" source="app.logs.gelf.port" defaultValue="12201"/>
+
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level service=${appName} traceId=%X{traceId:-} spanId=%X{spanId:-} correlationId=%X{correlationId:-} thread=%thread logger=%logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Centralização: cada linha vai em GELF para o Graylog; as chaves do MDC viram campos pesquisáveis. -->
+    <appender name="GELF" class="de.siegmar.logbackgelf.GelfUdpAppender">
+        <graylogHost>${gelfHost}</graylogHost>
+        <graylogPort>${gelfPort}</graylogPort>
+        <encoder class="de.siegmar.logbackgelf.GelfEncoder">
+            <includeRawMessage>false</includeRawMessage>
+            <includeMarker>false</includeMarker>
+            <includeMdcData>true</includeMdcData>
+            <includeCallerData>false</includeCallerData>
+            <includeRootCauseData>true</includeRootCauseData>
+            <includeLevelName>true</includeLevelName>
+            <shortPatternLayout class="ch.qos.logback.classic.PatternLayout">
+                <pattern>%m%nopex</pattern>
+            </shortPatternLayout>
+            <fullPatternLayout class="ch.qos.logback.classic.PatternLayout">
+                <pattern>%m%n</pattern>
+            </fullPatternLayout>
+            <staticField>service:${appName}</staticField>
+        </encoder>
+    </appender>
+
+    <appender name="ASYNC_GELF" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="GELF"/>
+        <queueSize>1024</queueSize>
+        <neverBlock>true</neverBlock>
+    </appender>
+
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="ASYNC_GELF"/>
+    </root>
+</configuration>

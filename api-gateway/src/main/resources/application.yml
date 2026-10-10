@@ -24,6 +24,11 @@ spring:
               uri: lb://auditoria-service
               predicates:
                 - Path=/api/auditoria/**
+app:
+  logs:
+    gelf:
+      host: ${GELF_HOST:localhost}
+      port: ${GELF_PORT:12201}
 management:
   tracing:
     sampling:
@@ -42,9 +47,8 @@ eureka:
   client:
     service-url:
       defaultZone: ${EUREKA_URL:http://localhost:8761/eureka/}
+# Appenders e pattern ficam em logback-spring.xml (console + GELF para o Graylog).
 logging:
-  pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level service=${spring.application.name} traceId=%X{traceId:-} spanId=%X{spanId:-} correlationId=%X{correlationId:-} thread=%thread logger=%logger{36} - %msg%n"
   level:
     root: INFO
     br.com.freela: INFO
