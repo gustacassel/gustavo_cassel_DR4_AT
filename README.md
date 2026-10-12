@@ -9,7 +9,8 @@ Documentos complementares:
 
 - [docs/ESPECIFICACAO-EVENTOS.md](docs/ESPECIFICACAO-EVENTOS.md) — contrato de comunicação: eventos, tópicos, chave, payload e exemplos.
 - [docs/EVIDENCIAS.md](docs/EVIDENCIAS.md) — roteiro de execução e evidências dos fluxos.
-- [requests/freela.http](requests/freela.http) — chamadas de exemplo.
+- [requests/freela.http](requests/freela.http) — chamadas de exemplo (IntelliJ / VS Code REST Client).
+- [requests/insomnia-freela.json](requests/insomnia-freela.json) — as mesmas chamadas como coleção do Insomnia.
 
 ## Visão geral da arquitetura
 

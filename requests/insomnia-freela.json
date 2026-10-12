@@ -1,0 +1,193 @@
+{
+  "_type": "export",
+  "__export_format": 4,
+  "__export_source": "freela-marketplace",
+  "resources": [
+    {
+      "_id": "wrk_freela",
+      "_type": "workspace",
+      "parentId": null,
+      "name": "Freela Marketplace (AT)",
+      "description": "Chamadas pelo API Gateway. Depois de criar um contrato, copie o id para a variável contratoId do ambiente.",
+      "scope": "collection"
+    },
+    {
+      "_id": "env_freela",
+      "_type": "environment",
+      "parentId": "wrk_freela",
+      "name": "Base Environment",
+      "data": {
+        "gateway": "http://localhost:8080",
+        "correlationId": "evidencia-001",
+        "contratoId": "cole-aqui-o-id-do-contrato",
+        "clienteId": "11111111-1111-1111-1111-111111111111",
+        "freelancerId": "12121212-1212-1212-1212-121212121212"
+      }
+    },
+    {
+      "_id": "fld_contratos",
+      "_type": "request_group",
+      "parentId": "wrk_freela",
+      "name": "1. Contratos (geram eventos)",
+      "metaSortKey": -100
+    },
+    {
+      "_id": "fld_consultas",
+      "_type": "request_group",
+      "parentId": "wrk_freela",
+      "name": "2. Consultas nos consumidores",
+      "metaSortKey": -90
+    },
+    {
+      "_id": "fld_erros",
+      "_type": "request_group",
+      "parentId": "wrk_freela",
+      "name": "3. Erros e falha simulada",
+      "metaSortKey": -80
+    },
+    {
+      "_id": "req_criar",
+      "_type": "request",
+      "parentId": "fld_contratos",
+      "name": "Criar contrato (ContratoCriado)",
+      "method": "POST",
+      "url": "{{ _.gateway }}/api/contratos",
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" },
+        { "name": "X-Correlation-Id", "value": "{{ _.correlationId }}" }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"clienteId\": \"{{ _.clienteId }}\",\n  \"freelancerId\": \"{{ _.freelancerId }}\",\n  \"titulo\": \"Evidencia AT\",\n  \"valor\": 1500.00\n}"
+      },
+      "metaSortKey": -60
+    },
+    {
+      "_id": "req_entrega",
+      "_type": "request",
+      "parentId": "fld_contratos",
+      "name": "Registrar entrega (EntregaRegistrada)",
+      "method": "POST",
+      "url": "{{ _.gateway }}/api/contratos/{{ _.contratoId }}/entrega",
+      "headers": [ { "name": "X-Correlation-Id", "value": "{{ _.correlationId }}" } ],
+      "body": {},
+      "metaSortKey": -50
+    },
+    {
+      "_id": "req_conclusao",
+      "_type": "request",
+      "parentId": "fld_contratos",
+      "name": "Concluir (ContratoConcluido)",
+      "method": "POST",
+      "url": "{{ _.gateway }}/api/contratos/{{ _.contratoId }}/conclusao",
+      "headers": [ { "name": "X-Correlation-Id", "value": "{{ _.correlationId }}" } ],
+      "body": {},
+      "metaSortKey": -40
+    },
+    {
+      "_id": "req_cancelamento",
+      "_type": "request",
+      "parentId": "fld_contratos",
+      "name": "Cancelar (ContratoCancelado)",
+      "method": "POST",
+      "url": "{{ _.gateway }}/api/contratos/{{ _.contratoId }}/cancelamento",
+      "headers": [ { "name": "X-Correlation-Id", "value": "{{ _.correlationId }}" } ],
+      "body": {},
+      "metaSortKey": -30
+    },
+    {
+      "_id": "req_buscar",
+      "_type": "request",
+      "parentId": "fld_contratos",
+      "name": "Consultar contrato",
+      "method": "GET",
+      "url": "{{ _.gateway }}/api/contratos/{{ _.contratoId }}",
+      "headers": [ { "name": "X-Correlation-Id", "value": "{{ _.correlationId }}" } ],
+      "body": {},
+      "metaSortKey": -20
+    },
+    {
+      "_id": "req_listar",
+      "_type": "request",
+      "parentId": "fld_contratos",
+      "name": "Listar contratos",
+      "method": "GET",
+      "url": "{{ _.gateway }}/api/contratos",
+      "headers": [],
+      "body": {},
+      "metaSortKey": -10
+    },
+    {
+      "_id": "req_notificacoes",
+      "_type": "request",
+      "parentId": "fld_consultas",
+      "name": "Notificações",
+      "method": "GET",
+      "url": "{{ _.gateway }}/api/notificacoes",
+      "headers": [],
+      "body": {},
+      "metaSortKey": -30
+    },
+    {
+      "_id": "req_reputacoes",
+      "_type": "request",
+      "parentId": "fld_consultas",
+      "name": "Reputações",
+      "method": "GET",
+      "url": "{{ _.gateway }}/api/reputacoes",
+      "headers": [],
+      "body": {},
+      "metaSortKey": -20
+    },
+    {
+      "_id": "req_auditoria",
+      "_type": "request",
+      "parentId": "fld_consultas",
+      "name": "Auditoria",
+      "method": "GET",
+      "url": "{{ _.gateway }}/api/auditoria",
+      "headers": [],
+      "body": {},
+      "metaSortKey": -10
+    },
+    {
+      "_id": "req_409",
+      "_type": "request",
+      "parentId": "fld_erros",
+      "name": "Transição inválida (409) - concluir sem entrega",
+      "method": "POST",
+      "url": "{{ _.gateway }}/api/contratos/{{ _.contratoId }}/conclusao",
+      "headers": [],
+      "body": {},
+      "metaSortKey": -30
+    },
+    {
+      "_id": "req_404",
+      "_type": "request",
+      "parentId": "fld_erros",
+      "name": "Contrato inexistente (404)",
+      "method": "GET",
+      "url": "{{ _.gateway }}/api/contratos/00000000-0000-0000-0000-000000000000",
+      "headers": [],
+      "body": {},
+      "metaSortKey": -20
+    },
+    {
+      "_id": "req_falha",
+      "_type": "request",
+      "parentId": "fld_erros",
+      "name": "Falha simulada na notificação (retry + DLT)",
+      "method": "POST",
+      "url": "{{ _.gateway }}/api/contratos",
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" },
+        { "name": "X-Correlation-Id", "value": "evidencia-falha" }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"clienteId\": \"{{ _.clienteId }}\",\n  \"freelancerId\": \"{{ _.freelancerId }}\",\n  \"titulo\": \"FALHA: demonstracao de retry e DLT\",\n  \"valor\": 10\n}"
+      },
+      "metaSortKey": -10
+    }
+  ]
+}
