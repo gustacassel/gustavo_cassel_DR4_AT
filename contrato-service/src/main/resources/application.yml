@@ -35,6 +35,9 @@ app:
   outbox:
     intervalo-ms: 1000
 management:
+  observations:
+    enable:
+      tasks.scheduled: false
   tracing:
     sampling:
       probability: 1.0
