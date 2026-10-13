@@ -14,35 +14,9 @@ Documentos complementares:
 
 ## Visão geral da arquitetura
 
-```text
-                 Cliente
-                    | HTTP  (X-Correlation-Id opcional; gerado no Gateway se ausente)
-                    v
-            +---------------+        Eureka (:8761)
-            |  API Gateway  |------- service discovery
-            |    :8080      |
-            +-------+-------+
-                    | lb://contrato-service   (traceparent + X-Correlation-Id)
-                    v
-          +-------------------+        contrato_db
-          | contrato-service  |------- contratos
-          |      :8081        |        outbox_eventos
-          +---------+---------+
-                    |  OutboxPublisher (1 s)  chave = contratoId
-                    v
-        +---------------------------+
-        |  Kafka  contratos.eventos |   3 partições   |  contratos.eventos.DLT (3 partições)
-        +------+--------+-----------+
-               |        |        |
-   +-----------+  +-----+-----+  +-----------+
-   | notificacao |  | reputacao |  | auditoria |     cada um com consumer group próprio,
-   |   :8082     |  |   :8083   |  |   :8084   |     concorrência 3 e tabela de idempotência
-   +------+------+  +-----+-----+  +-----+-----+
-          |               |              |
-   notificacao_db    reputacao_db   auditoria_db
+![Arquitetura da solução](docs/arquitetura.png)
 
-   Observabilidade: logs em GELF -> Graylog (:9000)   |   spans -> Zipkin (:9411)
-```
+Fonte do diagrama (Mermaid): [docs/arquitetura.mmd](docs/arquitetura.mmd). Todos os serviços enviam logs ao Graylog e spans ao Zipkin.
 
 Não existe nenhuma chamada HTTP do `contrato-service` para os serviços auxiliares: toda alteração
 relevante do contrato vira um evento no Kafka e os interessados reagem de forma assíncrona.

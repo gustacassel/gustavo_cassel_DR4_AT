@@ -1,0 +1,48 @@
+%%{init: {"flowchart": {"wrappingWidth": 320, "nodeSpacing": 40, "rankSpacing": 55}}}%%
+flowchart TB
+    CLI([Cliente])
+    GW["<b>API Gateway</b> :8080<br/>gera X-Correlation-Id · inicia o trace"]
+    EU[("Eureka :8761")]
+    CS["<b>contrato-service</b> :8081<br/>Aggregate Contrato · outbox"]
+    CDB[("contrato_db<br/>contratos + outbox_eventos")]
+    K{{"<b>Kafka</b> · contratos.eventos<br/>3 partições · chave = contratoId"}}
+    N["<b>notificacao-service</b><br/>:8082"]
+    R["<b>reputacao-service</b><br/>:8083"]
+    A["<b>auditoria-service</b><br/>:8084"]
+    NDB[("notificacao_db")]
+    RDB[("reputacao_db")]
+    ADB[("auditoria_db")]
+    DLT{{"contratos.eventos.DLT<br/>3 partições"}}
+
+    CLI -->|"HTTP + X-Correlation-Id"| GW
+    GW -.->|"service discovery"| EU
+    GW -->|"lb://contrato-service"| CS
+    CS -->|"mesma transação"| CDB
+    CS -->|"OutboxPublisher"| K
+    K --> N
+    K --> R
+    K --> A
+    N --> NDB
+    R --> RDB
+    A --> ADB
+    N -.->|"após 3 tentativas"| DLT
+    R -.-> DLT
+    A -.-> DLT
+
+    subgraph OBS ["Observabilidade (todos os serviços)"]
+        direction LR
+        GL["<b>Graylog</b> :9000<br/>logs via GELF"]
+        ZK["<b>Zipkin</b> :9411<br/>spans / traces"]
+    end
+
+    classDef app fill:#DCEBFA,stroke:#2F6DB5,color:#0B2545
+    classDef infra fill:#F2F2F2,stroke:#7F7F7F,color:#222
+    classDef broker fill:#FFF2CC,stroke:#BF9000,color:#3D2E00
+    classDef dlt fill:#FBE3E3,stroke:#C0392B,color:#5A1A14
+    classDef obs fill:#E2F0D9,stroke:#548235,color:#1E3A10
+    class GW,CS,N,R,A app
+    class EU,CDB,NDB,RDB,ADB,CLI infra
+    class K broker
+    class DLT dlt
+    class GL,ZK obs
+    style OBS fill:#F7FBF4,stroke:#548235,stroke-dasharray: 4 3
